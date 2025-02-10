@@ -99,8 +99,6 @@
 
 #include "ble_cus.h"
 
-#include "software_uart.h"
-
 
 #define DEAD_BEEF                       0xDEADBEEF                              /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
@@ -384,11 +382,8 @@ ret_code_t tag_detect_and_read(void)
     }
     adafruit_pn532_tag_info_printout(&tag_info);
 
-
-
-
     NRF_LOG_INFO("UID JE: %d %d prvi i zadnji clan",tag_info.nfc_id[0], tag_info.nfc_id[3]);
-    //uart_tx_buffer(tag_info.nfc_id,4, 200);
+
     if( tag_info.nfc_id[0] == 0x54 && tag_info.nfc_id[1] == 0x43 && tag_info.nfc_id[2] == 0xB8 && tag_info.nfc_id[3] == 0x02 )
     {
         NRF_LOG_INFO("Uvjet ispunjen!");
@@ -415,95 +410,6 @@ ret_code_t tag_detect_and_read(void)
     }
 }
 
-// Authentication
-ret_code_t mifare_authenticate(uint8_t block_number, uint8_t *key, uint8_t *uid, uint8_t uid_len) {
-    uint8_t auth_cmd[12];
-    auth_cmd[0] = MIFARE_CMD_AUTH_A; // Use MIFARE_CMD_AUTH_B for KeyB
-    auth_cmd[1] = block_number;     // Block to authenticate
-    memcpy(&auth_cmd[2], key, 6);   // Authentication key (6 bytes)
-    memcpy(&auth_cmd[8], uid, uid_len); // Card UID
-
-    uint8_t response_len = 0;
-    return adafruit_pn532_in_data_exchange(auth_cmd, sizeof(auth_cmd), NULL, &response_len);
-}
-
-// Read Block
-ret_code_t mifare_read_block(uint8_t block_number, uint8_t *data) {
-    uint8_t read_cmd[2];
-    read_cmd[0] = MIFARE_CMD_READ;
-    read_cmd[1] = block_number;
-
-    uint8_t response_len = 16; // Block size is 16 bytes
-    return adafruit_pn532_in_data_exchange(read_cmd, sizeof(read_cmd), data, &response_len);
-}
-
-// Write Block
-ret_code_t mifare_write_block(uint8_t block_number, uint8_t *data) {
-    uint8_t write_cmd[18];
-    write_cmd[0] = MIFARE_CMD_WRITE;
-    write_cmd[1] = block_number;
-    memcpy(&write_cmd[2], data, 16); // Data to write
-
-    uint8_t response_len = 0;
-    return adafruit_pn532_in_data_exchange(write_cmd, sizeof(write_cmd), NULL, &response_len);
-}
-
-ret_code_t mifare_classic_workflow() {
-    uint8_t key[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}; // Default MIFARE key
-    uint8_t uid[7];  // Buffer for UID
-    uint8_t uid_len = 0;
-    uint8_t block_data[16]; // Buffer for block data
-
-    nfc_a_tag_info tag_info;
-
-    // Step 1: Detect a card
-    ret_code_t err_code = adafruit_pn532_nfc_a_target_init(&tag_info, 1000);
-    if (err_code != NRF_SUCCESS) {
-        NRF_LOG_INFO("No tag detected.");
-        return;
-    }
-
-    // Extract UID
-    memcpy(uid, tag_info.nfc_id, tag_info.nfc_id_len);
-    uid_len = tag_info.nfc_id_len;
-
-    NRF_LOG_INFO("Card detected with UID:");
-    for (uint8_t i = 0; i < uid_len; i++) {
-        NRF_LOG_INFO("%02X ", uid[i]);
-    }
-
-    // Step 2: Authenticate block 4
-    err_code = mifare_authenticate(4, key, uid, uid_len);
-    if (err_code != NRF_SUCCESS) {
-        NRF_LOG_INFO("Authentication failed.");
-        return;
-    }
-    NRF_LOG_INFO("Authentication successful.");
-
-    // Step 3: Read block 4
-    err_code = mifare_read_block(4, block_data);
-    if (err_code == NRF_SUCCESS) {
-        NRF_LOG_INFO("Block 4 Data:");
-        for (uint8_t i = 0; i < 16; i++) {
-            NRF_LOG_INFO("%02X ", block_data[i]);
-        }
-    } else {
-        NRF_LOG_INFO("Failed to read block 4.");
-        return;
-    }
-
-    // Step 4: Write to block 4
-    uint8_t new_data[16] = {
-        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-        0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10
-    };
-    err_code = mifare_write_block(4, new_data);
-    if (err_code == NRF_SUCCESS) {
-        NRF_LOG_INFO("Block 4 written successfully.");
-    } else {
-        NRF_LOG_INFO("Failed to write block 4.");
-    }
-}
 
 /**
  * @brief Function for waiting specified time after a Tag read operation.
@@ -675,11 +581,13 @@ static void idle_state_handle(void)
 }
 
 
+#include "software_uart.h"
+#include "rtc_external.h"
 
 int main(void)
 {
     ret_code_t     err_code;
-    log_init(); //Testing purpose
+    //log_init(); //Testing purpose
 
     tstr_module_init  *modules = get_modules_init();
 
@@ -689,68 +597,28 @@ int main(void)
             modules[i].init();
         }
     }
-    for (uint32_t pin = 1; pin < 30; pin++) {
-        // Configure pin as input
-        //nrf_gpio_cfg_input(pin, NRF_GPIO_PIN_PULLUP);
-    }
-    uint8_t test1[] = "Dobar Dan!";   
-    size_t test1_size = sizeof(test1) - 1;
 
     timers_init();
-    //uart_tx_init();
-   // uart_tx_buffer(test1,test1_size,200);
+    uart_tx_init();
+    twi_init();
 
-    //buttons_leds_init(&erase_bonds); Not abstracted yet!
-    NRF_LOG_INFO("NFC Adafruit tag reader example startedsdsd.");
-    nrf_gpio_cfg_output(LED_PIN);
-    nrf_gpio_cfg_output(DOOR_OPEN_PIN);
-    
-    nrf_gpio_pin_clear(LED_PIN);
-    nrf_gpio_pin_clear(DOOR_OPEN_PIN);
+    //RTC Example
+    if (mcp79402_check()) {
+        // RTC - 12:34:56
+        mcp79402_set_time(56, 34, 12);
+        mcp79402_start_oscillator(56);
 
-    uint32_t pin_status = nrf_gpio_pin_read(LED_PIN);
-   
-
-    err_code = adafruit_pn532_init(false);
-    APP_ERROR_CHECK(err_code);
-
-    NRF_LOG_INFO("NFC Adafruit tag reader example started.");
-
-    // Enter main loop.
-    for (;;)
-    {
-        err_code = mifare_classic_workflow();
-       // adafruit_pn532_power_down();
-        switch (err_code)
-        {
-            case NRF_SUCCESS:
-                after_read_delay();
-                break;
-
-            case NRF_ERROR_NO_MEM:
-                NRF_LOG_INFO("Declared buffer for T2T is to small to store tag data.");
-                after_read_delay();
-                break;
-
-            case NRF_ERROR_NOT_FOUND:
-                NRF_LOG_INFO("No Tag found.");
-                // No delay here as we want to search for another tag immediately.
-                break;
-
-            case NRF_ERROR_NOT_SUPPORTED:
-                NRF_LOG_INFO("Tag not supported.");
-                after_read_delay();
-                break;
-
-            default:
-                NRF_LOG_INFO("Error during tag read.");
-                err_code = adafruit_pn532_field_off();
-                break;
+        uint8_t sec, min, hour;
+        mcp79402_read_time(&sec, &min, &hour);
+        while (1) {
+        nrf_delay_ms(1000);
+        mcp79402_read_time(&sec, &min, &hour);
         }
-        NRF_LOG_FLUSH();
-        idle_state_handle();
-
+    } else {
+        // RTC not responding
+        while (1);
     }
+    //RTC Example
 }
 
 
