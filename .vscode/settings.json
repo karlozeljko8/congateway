@@ -1,0 +1,27 @@
+{
+    "files.associations": {
+        "init_interface.h": "c",
+        "power_mgmt_interface.h": "c",
+        "ble_manager.h": "c",
+        "peer_manager_handler.h": "c",
+        "nrf_ble_gatt.h": "c",
+        "ble_advertising.h": "c",
+        "ble_advdata.h": "c",
+        "ble_conn_params.h": "c",
+        "ble_interface.h": "c",
+        "nrf_sdh.h": "c",
+        "string.h": "c",
+        "nrf52_to_nrf52840.h": "c",
+        "nrf52840.h": "c",
+        "nrf_rtc.h": "c",
+        "ble_fsm.h": "c",
+        "ble_fsm_context.h": "c",
+        "ble_cus.h": "c",
+        "stdint.h": "c",
+        "ble_fsm_actions.h": "c",
+        "nrf_log.h": "c",
+        "peer_manager.h": "c",
+        "pm_buffer.h": "c"
+    },
+    "cmake.sourceDirectory": "C:/Users/Karlo/Documents/Projects/Congateway/external/mbedtls/programs/x509"
+}
