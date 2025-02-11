@@ -10,7 +10,8 @@ typedef enum _tenu_card_read_state  {
     WRITE_TO_MEMORY_BLOCK
 }tenu_card_read_state;
 
-card_read_state = AUTH_WITH_DEFAULT_KEY;
+tenu_card_read_state card_read_state = AUTH_WITH_DEFAULT_KEY;
+tenu_card_read_state init_next_state = AUTH_WITH_DEFAULT_KEY;
 
 /**
  * @brief Function for analyzing NDEF data coming either from a Type 2 Tag TLV block or
@@ -396,10 +397,6 @@ uint8_t is_init_needed = true;
 //         is on the list. If it is, password will be allocated to card
 /// @return 
 ret_code_t mifare_start(void) {
-
-
-
-
     ret_code_t err_code;
 
     // TEST DATA
@@ -407,13 +404,19 @@ ret_code_t mifare_start(void) {
         0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
         0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10
     };
+    // TEST DATA
 
-    if (is_init_needed){
+
+    switch(card_read_state){
+        case INIT:
         //  Card detection
         err_code = adafruit_pn532_nfc_a_target_init(&tag_info, 1000);
+        
         if (err_code != NRF_SUCCESS) {
             NRF_LOG_INFO("No tag detected.");
-        }else{
+            card_read_state = INIT;
+        }
+        else{
         // Extract UID
         memcpy(uid, tag_info.nfc_id, tag_info.nfc_id_len);
         uid_len = tag_info.nfc_id_len;
@@ -422,21 +425,16 @@ ret_code_t mifare_start(void) {
         for (uint8_t i = 0; i < uid_len; i++) {
             NRF_LOG_INFO("%02X ", uid[i]);
             }
+            card_read_state = init_next_state; 
         }
-
-    }
-
-    switch(card_read_state){
-        case INIT:
-
         break;
         case AUTH_WITH_DEFAULT_KEY:
             err_code = memory_block_authenticate(memory_block, default_key, uid, uid_len, block_data);
             if (err_code == NRF_SUCCESS){
                 card_read_state = CONFIG_CUSTOM_KEY;
-                is_init_needed = false;
             }else{
-                card_read_state = AUTH_WITH_CUSTOM_KEY;
+                card_read_state = INIT; // Reinit
+                init_next_state = AUTH_WITH_CUSTOM_KEY; // After reinit - go to AUTH_WITH_CUSTOM_KEY
             }
         break;
         case AUTH_WITH_CUSTOM_KEY:
@@ -444,10 +442,9 @@ ret_code_t mifare_start(void) {
             err_code = memory_block_authenticate(memory_block, custom_key, uid, uid_len, block_data);
             if (err_code == NRF_SUCCESS){
                 card_read_state = WRITE_TO_MEMORY_BLOCK;
-                is_init_needed = false;
             }else{
-                card_read_state = AUTH_WITH_DEFAULT_KEY;
-                is_init_needed = true;
+                card_read_state = INIT; // Reinit
+                init_next_state = AUTH_WITH_DEFAULT_KEY; // After reinit - go to AUTH_WITH_DEFAULT_KEY
             }
     
         break;
@@ -456,10 +453,9 @@ ret_code_t mifare_start(void) {
             configure_custom_key(1, default_key, custom_key, uid, uid_len);
             if (err_code == NRF_SUCCESS){
                 card_read_state = AUTH_WITH_CUSTOM_KEY;
-                is_init_needed = false;
             }else{
-                card_read_state = AUTH_WITH_DEFAULT_KEY;
-                is_init_needed = true;
+                card_read_state = INIT; // Reinit
+                init_next_state = AUTH_WITH_DEFAULT_KEY; // After reinit - go to AUTH_WITH_DEFAULT_KEY
             }
         break;
         case WRITE_TO_MEMORY_BLOCK:
@@ -470,8 +466,8 @@ ret_code_t mifare_start(void) {
             }else {
                 NRF_LOG_INFO("Failed to write block 4.");
             }
-            card_read_state = AUTH_WITH_DEFAULT_KEY;
-            is_init_needed = true;
+            card_read_state = INIT;
+            init_next_state = AUTH_WITH_DEFAULT_KEY; // After reinit - go to AUTH_WITH_DEFAULT_KEY
         break;
     }
 }
