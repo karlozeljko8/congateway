@@ -300,7 +300,7 @@ int main(void)
 
             default:
                 NRF_LOG_INFO("Error during tag read.");
-                err_code = adafruit_pn532_field_off();
+                //err_code = adafruit_pn532_field_off();
                 break;
         }
         NRF_LOG_FLUSH();
