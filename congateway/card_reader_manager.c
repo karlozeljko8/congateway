@@ -11,6 +11,16 @@ typedef enum
     NFC_TT_NOT_SUPPORTED ///< Tag Type not supported.
 } nfc_tag_type_t;
 
+typedef struct {
+    uint8_t default_key[6]; // Default Auth key 
+    uint8_t custom_key[6];  // Custom Auth key
+    uint8_t memory_block;   // Memory block for password store   
+    uint8_t sector;         // Sector of memory block(different for 1kB and 4kB Mifare cards)         
+    uint8_t uid[7];         // Buffer for UID        
+    uint8_t uid_len;
+    uint8_t block_data[16]; // Buffer for block data
+}tstr_mifare_data;
+
 typedef enum _tenu_card_read_state  {
     INIT,
     AUTH_WITH_DEFAULT_KEY,
@@ -20,8 +30,23 @@ typedef enum _tenu_card_read_state  {
     WRITE_TO_MEMORY_BLOCK
 }tenu_card_read_state;
 
-tenu_card_read_state card_read_state = AUTH_WITH_DEFAULT_KEY;
+tstr_mifare_data mifare_data = {
+    .default_key    = MIFARE_DEFAULT_KEY,
+    .custom_key     = MIFARE_CUSTOM_KEY,
+    .memory_block   = MEMORY_BLOCK,
+    .sector         = SECTOR,
+    .uid            = {0},
+    .uid_len        = 0,
+    .block_data     = {0}
+};
+
+tenu_card_read_state card_read_state = INIT;
 tenu_card_read_state init_next_state = AUTH_WITH_DEFAULT_KEY; // Next state after initialization
+
+tstr_mifare_data *get_mifare_data(void){
+
+    return &mifare_data;
+}
 
 /**
  * @brief Function for analyzing NDEF data coming either from a Type 2 Tag TLV block or
@@ -160,6 +185,13 @@ ret_code_t t2t_data_read_and_analyze(nfc_a_tag_info * p_tag_info)
     return NRF_SUCCESS;
 }
 
+void print_card_uid(tstr_mifare_data *mifare_data){
+    NRF_LOG_INFO("Card detected with UID:");
+
+    for (uint8_t i = 0; i < mifare_data->uid_len; i++) {
+        NRF_LOG_INFO("%02X ", mifare_data->uid[i]);
+    }
+}
 
 /**
  * @brief Function for reading and analyzing data from a Type 4 Tag Platform.
@@ -320,10 +352,10 @@ ret_code_t mifare_read_block(uint8_t block_number, uint8_t *data) {
 }
 
 // Write Block
-ret_code_t mifare_write_block(uint8_t block_number, uint8_t *data) {
+ret_code_t mifare_write_block(uint8_t memory_block, uint8_t *data) {
     uint8_t write_cmd[18];
     write_cmd[0] = MIFARE_CMD_WRITE;
-    write_cmd[1] = block_number;
+    write_cmd[1] = memory_block;
     memcpy(&write_cmd[2], data, 16); // Data to write
 
     uint8_t response_len = 0;
@@ -333,10 +365,10 @@ ret_code_t mifare_write_block(uint8_t block_number, uint8_t *data) {
 
 uint8_t test_uid[4] =   {0x43, 0x11, 0x1D, 0xD8};
 
-ret_code_t memory_block_authenticate(uint8_t memory_block, uint8_t *key, uint8_t *uid, uint8_t uid_len, uint8_t* block_data){
+ret_code_t memory_block_authenticate(tstr_mifare_data *mifare_data, uint8_t *key){
     ret_code_t err_code;
     //  Authenticate defined block with appropriate key 
-    err_code = mifare_authenticate(memory_block, key, uid, uid_len);
+    err_code = mifare_authenticate(mifare_data->memory_block, key, mifare_data->uid, mifare_data->uid_len);
 
     if (err_code != NRF_SUCCESS) {
         NRF_LOG_INFO("Authentication failed.");
@@ -360,24 +392,25 @@ ret_code_t memory_block_authenticate(uint8_t memory_block, uint8_t *key, uint8_t
     //} 
 }
 
-ret_code_t configure_custom_key(uint8_t sector, uint8_t *current_key, uint8_t *new_key, uint8_t *uid, uint8_t uid_len){
-    uint8_t sector_trailer_block    = (sector * 4) + 3; // trailer block - zadnji block u sektoru
+ret_code_t configure_custom_key(tstr_mifare_data *mifare_data){
+    uint8_t sector_trailer_block    = (mifare_data->sector * 4) + 3; // trailer block - zadnji block u sektoru
     uint8_t sector_trailer_data[16]      = {0};
 
-        // 1. Authenticate with the current key
-    ret_code_t err_code = mifare_authenticate(sector_trailer_block, current_key, uid, uid_len);
+        // 1. Authenticate with the default key
+    ret_code_t err_code = mifare_authenticate(sector_trailer_block, mifare_data->default_key,
+                                                mifare_data->uid, mifare_data->uid_len);
     if (err_code != NRF_SUCCESS) {
         NRF_LOG_ERROR("Authentication failed.");
         return err_code;
     }  
 
     // 2. Prepare the sector trailer data
-    memcpy(sector_trailer_data, new_key, 6);           // Key A (new custom key)
+    memcpy(sector_trailer_data, mifare_data->custom_key, 6);           // Key A (new custom key)
     sector_trailer_data[6] = 0xFF;                     // Access bits (default values)
     sector_trailer_data[7] = 0x07;                     // Access bits
     sector_trailer_data[8] = 0x80;                     // Access bits
     memset(&sector_trailer_data[9], 0x00, 1);          // General purpose byte
-    memcpy(&sector_trailer_data[10], current_key, 6);  // Key B - ostavljen kao defaultni
+    memcpy(&sector_trailer_data[10], mifare_data->default_key, 6);  // Key B - ostavljen kao defaultni
 
     // 3. Write the new sector trailer
     err_code = mifare_write_block(sector_trailer_block, sector_trailer_data);
@@ -390,17 +423,10 @@ ret_code_t configure_custom_key(uint8_t sector, uint8_t *current_key, uint8_t *n
     return NRF_SUCCESS;
 
 }
-uint8_t default_key[6]          = MIFARE_DEFAULT_KEY;
-uint8_t custom_key[6]           = MIFARE_CUSTOM_KEY;
-uint8_t memory_block            = MEMORY_BLOCK;
-uint8_t sector                  = SECTOR;
-uint8_t uid[7];                 // Buffer for UID
-uint8_t uid_len = 0;
-uint8_t block_data[16];         // Buffer for block data
 
 nfc_a_tag_info tag_info;
 
-uint8_t is_init_needed = true;
+
 
 /// @brief When mifare card is detected, defined memory block will
 //         be checked for password. If password is okay, door will
@@ -410,6 +436,8 @@ uint8_t is_init_needed = true;
 ret_code_t mifare_start(void) {
     ret_code_t err_code;
 
+
+
     // TEST DATA
     uint8_t new_data[16] = {
         0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
@@ -417,30 +445,26 @@ ret_code_t mifare_start(void) {
     };
     // TEST DATA
 
+    tstr_mifare_data *ptr_mifare_data = get_mifare_data();
 
     switch(card_read_state){
         case INIT:
-        //  Card detection
-        err_code = adafruit_pn532_nfc_a_target_init(&tag_info, 1000);
-        
-        if (err_code != NRF_SUCCESS) {
-            NRF_LOG_INFO("No tag detected.");
-            card_read_state = INIT;
-        }
-        else{
-        // Extract UID
-        memcpy(uid, tag_info.nfc_id, tag_info.nfc_id_len);
-        uid_len = tag_info.nfc_id_len;
+            //  Card detection
+            err_code = adafruit_pn532_nfc_a_target_init(&tag_info, 1000);
+            
+            if (err_code == NRF_SUCCESS) {
+                // Extract UID
+                memcpy(ptr_mifare_data->uid, tag_info.nfc_id, tag_info.nfc_id_len);
+                ptr_mifare_data->uid_len = tag_info.nfc_id_len;
 
-        NRF_LOG_INFO("Card detected with UID:");
-        for (uint8_t i = 0; i < uid_len; i++) {
-            NRF_LOG_INFO("%02X ", uid[i]);
+                print_card_uid(ptr_mifare_data);
+                card_read_state = init_next_state; 
+            }else{
+                NRF_LOG_INFO("No tag detected.");
             }
-            card_read_state = init_next_state; 
-        }
         break;
         case AUTH_WITH_DEFAULT_KEY:
-            err_code = memory_block_authenticate(memory_block, default_key, uid, uid_len, block_data);
+            err_code = memory_block_authenticate(ptr_mifare_data, ptr_mifare_data->default_key);
             if (err_code == NRF_SUCCESS){
                 card_read_state = CONFIG_CUSTOM_KEY;
             }else{
@@ -450,7 +474,7 @@ ret_code_t mifare_start(void) {
         break;
         case AUTH_WITH_CUSTOM_KEY:
             NRF_LOG_INFO("Auth with Custom key!");
-            err_code = memory_block_authenticate(memory_block, custom_key, uid, uid_len, block_data);
+            err_code = memory_block_authenticate(ptr_mifare_data, ptr_mifare_data->custom_key);
             if (err_code == NRF_SUCCESS){
                 card_read_state = WRITE_TO_MEMORY_BLOCK;
             }else{
@@ -461,7 +485,7 @@ ret_code_t mifare_start(void) {
         break;
         case CONFIG_CUSTOM_KEY:
             NRF_LOG_INFO("Config custom key!");
-            configure_custom_key(sector, default_key, custom_key, uid, uid_len);
+            configure_custom_key(ptr_mifare_data);
             if (err_code == NRF_SUCCESS){
                 card_read_state = AUTH_WITH_CUSTOM_KEY;
             }else{
@@ -471,9 +495,9 @@ ret_code_t mifare_start(void) {
         break;
         case WRITE_TO_MEMORY_BLOCK:
             NRF_LOG_INFO("Write to memory block!");
-            err_code = mifare_write_block(memory_block, new_data);
+            err_code = mifare_write_block(ptr_mifare_data->memory_block, new_data);
             if (err_code == NRF_SUCCESS) {
-                NRF_LOG_INFO("Block %d written successfully in sector %d.", memory_block, sector);
+                NRF_LOG_INFO("Block %d written successfully in sector %d.", ptr_mifare_data->memory_block, ptr_mifare_data->sector);
             }else {
                 NRF_LOG_INFO("Failed to write block 4.");
             }
