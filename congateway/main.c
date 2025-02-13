@@ -274,32 +274,6 @@ int main(void)
         //err_code = mifare_start();
         err_code = pstr_card_reader_if->mifare_process_start();
        // adafruit_pn532_power_down();
-        switch (err_code)
-        {
-            case NRF_SUCCESS:
-                after_read_delay();
-                break;
-
-            case NRF_ERROR_NO_MEM:
-                NRF_LOG_INFO("Declared buffer for T2T is to small to store tag data.");
-                after_read_delay();
-                break;
-
-            case NRF_ERROR_NOT_FOUND:
-                NRF_LOG_INFO("No Tag found.");
-                // No delay here as we want to search for another tag immediately.
-                break;
-
-            case NRF_ERROR_NOT_SUPPORTED:
-                NRF_LOG_INFO("Tag not supported.");
-                after_read_delay();
-                break;
-
-            default:
-                NRF_LOG_INFO("Error during tag read.");
-                //err_code = adafruit_pn532_field_off();
-                break;
-        }
         NRF_LOG_FLUSH();
         idle_state_handle();
 
