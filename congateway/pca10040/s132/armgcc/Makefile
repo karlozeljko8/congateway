@@ -70,6 +70,7 @@ SRC_FILES += \
   $(PROJ_DIR)/ble_fsm_actions.c \
   $(PROJ_DIR)/software_uart.c \
   $(PROJ_DIR)/card_reader_manager.c \
+  $(PROJ_DIR)/card_reader_interface.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \

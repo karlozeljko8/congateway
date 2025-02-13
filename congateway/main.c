@@ -96,6 +96,8 @@
 #include "nrf_gpio.h"
 #include "nrfx_gpiote.h"
 
+#include "card_reader_interface.h"
+
 #define DEAD_BEEF                       0xDEADBEEF                              /**< Value used as error code on stack dump, can be used to identify stack location on stack unwind. */
 
 /**@brief Callback function for asserts in the SoftDevice.
@@ -266,16 +268,11 @@ int main(void)
     //uart_tx_init();
     //uart_tx_buffer(test1,test1_size,200);
 
-
-    err_code = adafruit_pn532_init(false);
-    APP_ERROR_CHECK(err_code);
-
-    NRF_LOG_INFO("NFC Adafruit tag reader example started.");
-
     // Enter main loop.
     for (;;)
     {
-        err_code = mifare_start();
+        //err_code = mifare_start();
+        err_code = pstr_card_reader_if->mifare_process_start();
        // adafruit_pn532_power_down();
         switch (err_code)
         {
