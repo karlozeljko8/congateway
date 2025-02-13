@@ -8,6 +8,7 @@ typedef enum _tenu_module_type {
     MODULE_BLE,
     MODULE_WAKE_UP_NFC,
     MODULE_PERIPHERAL,
+    MODULE_PN532,
     MODULE_GSM,
     MODULE_END
 } tenu_module_type;
