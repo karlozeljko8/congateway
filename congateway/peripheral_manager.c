@@ -36,7 +36,7 @@ void RTC1_IRQHandler(void)
 void rtc_handler(nrf_rtc_event_t event){
     if (event == NRF_RTC_EVENT_COMPARE_0){
         NRF_RTC1->TASKS_CLEAR   =1;
-
+        //adafruit_pn532_power_down();
         //nrf_pwr_mgmt_shutdown(0);
     }
 }
@@ -65,8 +65,6 @@ void configure_pn532_pins(void){
 //static const nrf_drv_twi_t m_twi_master = NRF_DRV_TWI_INSTANCE(PN532_CONFIG_TWI_INSTANCE);
 
 void i2c_init(void){
-    //NRF_LOG_INFO("Creating I2C");
-
     const nrf_drv_twi_t *m_twi_master = get_m_twi_master();
 
     nrf_drv_twi_config_t twi_config = NRF_DRV_TWI_DEFAULT_CONFIG;
@@ -76,11 +74,10 @@ void i2c_init(void){
     ret_code_t ret = nrf_drv_twi_init(m_twi_master, &twi_config, NULL, NULL);
     if (ret != NRF_SUCCESS)
     {
-        //NRF_LOG_INFO("Failed to initialize TWI, err_code = %d", ret);
-        //return ret;
+        return ret;
     }
 
     nrf_drv_twi_enable(m_twi_master);
 
-    //return NRF_SUCCESS;
+    return NRF_SUCCESS;
 }
