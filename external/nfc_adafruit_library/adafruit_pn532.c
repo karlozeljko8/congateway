@@ -36,7 +36,6 @@
 #include "adafruit_pn532.h"
 #include "nrf_gpio.h"
 #include "nrf_delay.h"
-#include "nrf_drv_twi.h"
 #include "app_error.h"
 #include "app_util.h"
 #include "nordic_common.h"
@@ -152,6 +151,15 @@ static uint8_t m_pn532_rxtx_buffer[PN532_PACKBUFF_SIZE]; /// Buffer for low leve
 
 static bool m_lib_initialized = false;
 
+/**
+ * Accessor function for twi_master
+ * It will be used for twi init in peripheral manager
+ */
+const nrf_drv_twi_t *get_m_twi_master(void){
+    
+    return &m_twi_master;
+}
+
 
 /**
  * @brief Function to configure pins in host chip.
@@ -246,21 +254,13 @@ ret_code_t adafruit_pn532_init(bool force)
         return NRF_ERROR_INTERNAL;
     }
 
-    ret_code_t err_code = adafruit_pn532_i2c_create();
-    if (err_code != NRF_SUCCESS)
-    {
-        NRF_LOG_INFO("Failed to create I2C, err_code = %d", err_code);
-        return err_code;
-    }
-
-    adafruit_pn532_pin_setup();
 
     // Delay for PN532 to catch up with NRF.
     nrf_delay_ms(100);
 
     NRF_LOG_INFO("Looking for PN532");
 
-    err_code = adafruit_pn532_firmware_version_get(&ver_data);
+    ret_code_t err_code = adafruit_pn532_firmware_version_get(&ver_data);
     if (err_code != NRF_SUCCESS)
     {
         NRF_LOG_INFO("Didn't find PN53x board, err_code = %d", err_code);
@@ -298,8 +298,8 @@ ret_code_t adafruit_pn532_i2c_create(void)
     NRF_LOG_INFO("Creating I2C");
 
     nrf_drv_twi_config_t twi_config = NRF_DRV_TWI_DEFAULT_CONFIG;
-    twi_config.scl = PN532_CONFIG_SCL;
-    twi_config.sda = PN532_CONFIG_SDA;
+    twi_config.scl = I2C_SCL;
+    twi_config.sda = I2C_SDA;
 
     ret_code_t ret = nrf_drv_twi_init(&m_twi_master, &twi_config, NULL, NULL);
     if (ret != NRF_SUCCESS)

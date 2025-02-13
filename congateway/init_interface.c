@@ -4,6 +4,7 @@
 #include "ble_interface.h"
 #include "nfc_interface.h"
 #include "peripheral_interface.h"
+#include "card_reader_interface.h"
 #include "nrf_sdh.h"
 
 void init_power_mgmt(void){
@@ -36,17 +37,23 @@ void init_gpio(void){
 void init_peripheral(void){
     pstr_peripheral_if->rtc_init();
     pstr_peripheral_if->gpio_init();
+    pstr_peripheral_if->i2c_init();
 }
 void init_gsm(void){
 
 }
+void init_pn532(void){
+    ret_code_t err_code;
+    err_code = pstr_card_reader_if->pn532_init(false);
+}
 
 tstr_module_init modules_init[MODULE_END] = {
-    {MODULE_POWER_MGMT, init_power_mgmt, true},
-    {MODULE_BLE, init_ble, true},
-    {MODULE_WAKE_UP_NFC, init_nfc_wakeup, true},
-    {MODULE_PERIPHERAL, init_peripheral, true},
-    {MODULE_GSM, init_gsm, false},
+    {MODULE_POWER_MGMT, init_power_mgmt,    true},
+    {MODULE_BLE,        init_ble,           true},
+    {MODULE_WAKE_UP_NFC,init_nfc_wakeup,    true},
+    {MODULE_PERIPHERAL, init_peripheral,    true},
+    {MODULE_PN532,      init_pn532,         true},
+    {MODULE_GSM,        init_gsm,           false},
 };
 
 tstr_module_init *pmodules_init = modules_init;
