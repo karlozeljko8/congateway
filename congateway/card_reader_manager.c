@@ -393,6 +393,7 @@ ret_code_t configure_custom_key(uint8_t sector, uint8_t *current_key, uint8_t *n
 uint8_t default_key[6]          = MIFARE_DEFAULT_KEY;
 uint8_t custom_key[6]           = MIFARE_CUSTOM_KEY;
 uint8_t memory_block            = MEMORY_BLOCK;
+uint8_t sector                  = SECTOR;
 uint8_t uid[7];                 // Buffer for UID
 uint8_t uid_len = 0;
 uint8_t block_data[16];         // Buffer for block data
@@ -460,7 +461,7 @@ ret_code_t mifare_start(void) {
         break;
         case CONFIG_CUSTOM_KEY:
             NRF_LOG_INFO("Config custom key!");
-            configure_custom_key(1, default_key, custom_key, uid, uid_len);
+            configure_custom_key(sector, default_key, custom_key, uid, uid_len);
             if (err_code == NRF_SUCCESS){
                 card_read_state = AUTH_WITH_CUSTOM_KEY;
             }else{
@@ -472,7 +473,7 @@ ret_code_t mifare_start(void) {
             NRF_LOG_INFO("Write to memory block!");
             err_code = mifare_write_block(memory_block, new_data);
             if (err_code == NRF_SUCCESS) {
-                NRF_LOG_INFO("Block 4 written successfully.");
+                NRF_LOG_INFO("Block %d written successfully in sector %d.", memory_block, sector);
             }else {
                 NRF_LOG_INFO("Failed to write block 4.");
             }

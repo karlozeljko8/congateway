@@ -28,8 +28,8 @@
 #define MIFARE_DEFAULT_KEY  {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF} // Default MIFARE auth key
 #define MIFARE_CUSTOM_KEY   {0xA1, 0x3C, 0x77, 0xC4, 0x83, 0x5B} // Custom MIFARE auth key
 
-#define MEMORY_BLOCK    4
-#define SECTOR          1
+#define MEMORY_BLOCK    8
+#define SECTOR          2
 
 /**
  * @brief Macro for handling errors returne by Type 4 Tag modules.
