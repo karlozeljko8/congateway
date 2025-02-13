@@ -250,7 +250,7 @@ static void idle_state_handle(void)
 }
 
 
-#include "card_reader_manager.h"
+
 int main(void)
 {
     ret_code_t     err_code;
@@ -271,9 +271,10 @@ int main(void)
     // Enter main loop.
     for (;;)
     {
-        //err_code = mifare_start();
-        err_code = pstr_card_reader_if->mifare_process_start();
-       // adafruit_pn532_power_down();
+        if(modules[MODULE_PN532].is_enabled){
+            err_code = pstr_card_reader_if->mifare_process_start();
+        }
+
         NRF_LOG_FLUSH();
         idle_state_handle();
 
