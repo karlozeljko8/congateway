@@ -12067,7 +12067,7 @@
 #define PN532_RESET 14
 #endif
 
-// <o> PN532_CONFIG_SCL  - Pin number
+// <o> I2C_SCL  - Pin number
  
 // <0=> 0 (P0.0) 
 // <1=> 1 (P0.1) 
@@ -12103,8 +12103,8 @@
 // <31=> 31 (P0.31) 
 // <4294967295=> Not connected 
 
-#ifndef PN532_CONFIG_SCL
-#define PN532_CONFIG_SCL 18
+#ifndef I2C_SCL
+#define I2C_SCL 18
 #endif
 
 // <o> PN532_CONFIG_SDA  - Pin number
@@ -12143,8 +12143,8 @@
 // <31=> 31 (P0.31) 
 // <4294967295=> Not connected 
 
-#ifndef PN532_CONFIG_SDA
-#define PN532_CONFIG_SDA 17
+#ifndef I2C_SDA
+#define I2C_SDA 17
 #endif
 
 // <o> PN532_CONFIG_TWI_INSTANCE  - TWI instance to be used

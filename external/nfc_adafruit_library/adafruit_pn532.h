@@ -35,6 +35,8 @@
 #include <stdbool.h>
 #include "sdk_errors.h"
 
+#include "nrf_drv_twi.h"
+
 /** @file
  *  @brief Adafruit PN532 NFC Shield library for reading and writing tags.
  *
@@ -212,6 +214,11 @@ typedef struct
  * @name Functions used for initialization
  *
  * @{ */
+
+/**
+ * Accessor funciton for twi_master struct
+ */
+extern const nrf_drv_twi_t *get_m_twi_master(void);
 
 /**  @brief Function for initializing the communication with the Adafruit PN532 Shield.
  *
