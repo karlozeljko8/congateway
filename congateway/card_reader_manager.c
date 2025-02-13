@@ -1,6 +1,16 @@
 #include "card_reader_manager.h"
 
 
+/**
+ * @brief Possible Tag Types.
+ */
+typedef enum
+{
+    NFC_T2T = 0x00,      ///< Type 2 Tag Platform.
+    NFC_T4T = 0x01,      ///< Type 4A Tag Platform.
+    NFC_TT_NOT_SUPPORTED ///< Tag Type not supported.
+} nfc_tag_type_t;
+
 typedef enum _tenu_card_read_state  {
     INIT,
     AUTH_WITH_DEFAULT_KEY,
@@ -11,7 +21,7 @@ typedef enum _tenu_card_read_state  {
 }tenu_card_read_state;
 
 tenu_card_read_state card_read_state = AUTH_WITH_DEFAULT_KEY;
-tenu_card_read_state init_next_state = AUTH_WITH_DEFAULT_KEY;
+tenu_card_read_state init_next_state = AUTH_WITH_DEFAULT_KEY; // Next state after initialization
 
 /**
  * @brief Function for analyzing NDEF data coming either from a Type 2 Tag TLV block or

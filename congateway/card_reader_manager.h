@@ -29,17 +29,7 @@
 #define MIFARE_CUSTOM_KEY   {0xA1, 0x3C, 0x77, 0xC4, 0x83, 0x5B} // Custom MIFARE auth key
 
 #define MEMORY_BLOCK    4
-
-/**
- * @brief Possible Tag Types.
- */
-typedef enum
-{
-    NFC_T2T = 0x00,      ///< Type 2 Tag Platform.
-    NFC_T4T = 0x01,      ///< Type 4A Tag Platform.
-    NFC_TT_NOT_SUPPORTED ///< Tag Type not supported.
-} nfc_tag_type_t;
-
+#define SECTOR          1
 
 /**
  * @brief Macro for handling errors returne by Type 4 Tag modules.
