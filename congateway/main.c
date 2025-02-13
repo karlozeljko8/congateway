@@ -264,6 +264,7 @@ int main(void)
             modules[i].init();
         }
     }
+    timers_init();
     //Software Uart example - mozda ga staviti u modul i koristiti if softw_uart.enabled? 
     //uart_tx_init();
     //uart_tx_buffer(test1,test1_size,200);
