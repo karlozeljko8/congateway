@@ -2,6 +2,10 @@
 #include "peripheral_manager.h"
 #include "adafruit_pn532.h"
 
+#include "ble_types.h"
+#include "ble_hci.h"
+#include "ble_gap.h"
+
 #define RTC_TICKS_10_SEC (10 * 32768)
 #define TOTAL_PINS 38 // Total number of GPIO pins in nRF52
 // Od 38 - 48 visoka potrosnja, BLE radi
@@ -38,6 +42,19 @@ void rtc_handler(nrf_rtc_event_t event){
         NRF_RTC1->TASKS_CLEAR   =1;
         //adafruit_pn532_power_down();
         //nrf_pwr_mgmt_shutdown(0);
+        nrf_gpio_pin_clear(29); // GSM Power Pin
+        nrf_gpio_pin_set(18);   // I2C Pin
+        nrf_gpio_pin_set(17);   // I2C Pin
+
+
+        //nrf_gpio_pin_clear(11);
+        //nrf_gpio_pin_set(12);
+        
+        sd_ble_gap_adv_stop(0);
+        sd_ble_gap_disconnect(BLE_CONN_HANDLE_INVALID, BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION);
+        sd_power_dcdc_mode_set(0);
+        NRF_TWI0->ENABLE = 0;             // Disable I2C
+        app_timer_stop_all();
     }
 }
 
@@ -49,8 +66,16 @@ void gpio_config(void){
 void configure_unused_pins(void) {
     for (uint32_t pin = 8; pin < 32; pin++) {
         // Configure pin as input
-        nrf_gpio_cfg_input(pin, NRF_GPIO_PIN_PULLUP);
+        //nrf_gpio_cfg_input(pin, NRF_GPIO_PIN_PULLUP);
     }
+    nrf_gpio_cfg_input(3, NRF_GPIO_PIN_PULLUP);
+    nrf_gpio_cfg_input(4, NRF_GPIO_PIN_PULLUP);
+
+    nrf_gpio_cfg_input(10, NRF_GPIO_PIN_PULLUP);
+    nrf_gpio_cfg_input(9, NRF_GPIO_PIN_PULLUP);
+
+    nrf_gpio_cfg_output(29);
+    nrf_gpio_pin_set(29);
 }
 
 void configure_pn532_pins(void){
