@@ -4,7 +4,7 @@
 
 #define BUFFER_SIZE 256
 #define UART_TX_PIN    30
-#define BAUD_RATE 4800
+#define BAUD_RATE 115200
 #define BIT_DELAY (1000000 / BAUD_RATE)
 
 

@@ -273,7 +273,15 @@ int main(void)
     gsm_init();
     gsm_power_enable();
 
+    char response[100];
+
     uart_init();
+    nrf_delay_ms(10000);
+    char test[] = "AT+CPIN?\r\n";
+    uart_send(test, strlen(test));
+    //uart_receive_response(response, sizeof(response));
+
+    //uart_log(response);
 
     // Enter main loop.
     for (;;)
@@ -281,6 +289,7 @@ int main(void)
         if(modules[MODULE_PN532].is_enabled){
             err_code = pstr_card_reader_if->mifare_process_start();
         }
+        uart_send((uint8_t *)test, strlen(test)); // Send AT command
 
         NRF_LOG_FLUSH();
         idle_state_handle();

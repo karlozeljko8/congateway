@@ -55,8 +55,9 @@ void uart_event_handler(nrf_drv_uart_event_t * p_event, void * p_context)
     switch (p_event->type)
     {
         case NRF_DRV_UART_EVT_RX_DONE:
-            nrf_drv_uart_tx(&m_uart, rx_buffer, sizeof(rx_buffer));
-            nrf_drv_uart_rx(&m_uart, rx_buffer, sizeof(rx_buffer));
+            uart_log("ehehehhe %d and bytes %d", p_event->data.rxtx.p_data[0], p_event->data.rxtx.bytes);
+            uart_log((char*)p_event->data.rxtx.p_data);
+            nrf_drv_uart_rx(&m_uart, rx_buffer, sizeof(rx_buffer)); // Re-enable RX
             break;
 
         case NRF_DRV_UART_EVT_TX_DONE:
@@ -78,10 +79,28 @@ void uart_send(uint8_t * data, size_t length)
 
     // Send data
     err_code = nrf_drv_uart_tx(&m_uart, data, length);
-    uart_log("uart send: %s err_code", nrf_strerror_get);
+    uart_log("uart send: %s \r\n", data);
     if (err_code != NRF_SUCCESS)
     {
         // Handle error
+    }
+}
+
+char uart_read_char(void) {
+    while (!(NRF_UART0->EVENTS_RXDRDY)) {}  // Wait until character is received
+    NRF_UART0->EVENTS_RXDRDY = 0;  // Clear the event
+    return NRF_UART0->RXD;
+}
+
+void uart_receive_response(char *buffer, uint16_t buffer_size) {
+    uint16_t i = 0;
+    while (i < buffer_size - 1) {
+        char c = uart_read_char();
+        if (c == '\n') {
+            buffer[i] = '\0';  // End the string at the newline character
+            break;
+        }
+        buffer[i++] = c;
     }
 }
 
@@ -90,7 +109,7 @@ void uart_init(void){
     nrf_drv_uart_uninit(&m_uart);
     // Initialize the UART driver
     err_code = nrf_drv_uart_init(&m_uart, &m_uart_config, uart_event_handler);
-    uart_log("uart init: %s err_code", nrf_strerror_get(err_code));
+    uart_log("uart init: %s err_code\r\n", nrf_strerror_get(err_code));
     if (err_code != NRF_SUCCESS)
     {
         // Handle error
