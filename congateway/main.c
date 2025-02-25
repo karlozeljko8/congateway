@@ -249,8 +249,9 @@ static void idle_state_handle(void)
     }
 }
 
-
-
+#include "gsm.h"
+#include "nrf_drv_uart.h"
+//static nrf_drv_uart_t app_uart_inst = NRF_DRV_UART_INSTANCE(APP_UART_DRIVER_INSTANCE);
 int main(void)
 {
     ret_code_t     err_code;
@@ -266,8 +267,13 @@ int main(void)
     }
     timers_init();
     //Software Uart example - mozda ga staviti u modul i koristiti if softw_uart.enabled? 
-    //uart_tx_init();
-    //uart_tx_buffer(test1,test1_size,200);
+    uart_tx_init();
+    uart_log("Welcome to new Software Uart! !" );
+
+    gsm_init();
+    gsm_power_enable();
+
+    uart_init();
 
     // Enter main loop.
     for (;;)

@@ -71,6 +71,9 @@ SRC_FILES += \
   $(PROJ_DIR)/software_uart.c \
   $(PROJ_DIR)/card_reader_manager.c \
   $(PROJ_DIR)/card_reader_interface.c \
+  $(PROJ_DIR)/gsm.c \
+  $(SDK_ROOT)/components/libraries/uart/app_uart_fifo.c \
+  $(SDK_ROOT)/components/libraries/fifo/app_fifo.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
@@ -126,6 +129,8 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/usbd/class/msc \
   $(SDK_ROOT)/components/libraries/usbd/class/hid \
   $(SDK_ROOT)/modules/nrfx/hal \
+  $(SDK_ROOT)/components/libraries/fifo \
+  $(SDK_ROOT)/components/libraries/uart \
   $(SDK_ROOT)/integration/nrfx/legacy \
   $(SDK_ROOT)/components/nfc/ndef/conn_hand_parser/le_oob_rec_parser \
   $(SDK_ROOT)/components/libraries/log \
