@@ -49,7 +49,7 @@ void gpio_config(void){
 void configure_unused_pins(void) {
     for (uint32_t pin = 8; pin < 32; pin++) {
         // Configure pin as input
-        nrf_gpio_cfg_input(pin, NRF_GPIO_PIN_PULLUP);
+        //nrf_gpio_cfg_input(pin, NRF_GPIO_PIN_PULLUP);
     }
 }
 
