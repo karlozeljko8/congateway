@@ -33,7 +33,8 @@ void uart_error_handle(app_uart_evt_t * p_event)
         APP_ERROR_HANDLER(p_event->data.error_code);
     }
 }
-
+bool cmd_sent = false;
+bool modem_respond_rcvd = false;
 
 #include "nrf_drv_uart.h"
 
@@ -77,10 +78,10 @@ void uart_event_handler(nrf_drv_uart_event_t * p_event, void * p_context)
             break;
     }
 }
-void uart_send(uint8_t * data, size_t length)
+void uart_send(uint8_t * data)
 {
     ret_code_t err_code;
-
+    size_t length = strlen(data);
     // Send data
     err_code = nrf_drv_uart_tx(&m_uart, data, length);
     uart_log("uart send: %s \r\n", data);
@@ -88,6 +89,7 @@ void uart_send(uint8_t * data, size_t length)
     {
         // Handle error
     }
+    cmd_sent = true;
 }
 
 char uart_read_char(void) {
@@ -117,7 +119,8 @@ void receive_buffer(){
                 timeout++;
             }
         }
-        
+        modem_respond_rcvd = true;
+        cmd_sent           = false;
     }
     uart_log("buffer: %s ", rx_buffer);
     uart_log("buffer len: %d\r\n",rx_index);
@@ -171,7 +174,12 @@ typedef enum {
 
 //static uint8_t rx_buffer[UART_BUFF_SIZE];
 //static uint8_t tx_buffer[UART_BUFF_SIZE];
-static gsm_states_t  current_state = GSM_ON;
+static gsm_states_t  current_state = GSM_AT_INIT;
+
+void set_gprs_state(gsm_states_t next_state)
+{
+    current_state = next_state;
+}
 
 // FTP Example
 const char *ftp_server = "ftp.example.com";
@@ -180,7 +188,71 @@ const char *ftp_pass = "password";
 const char *file_path = "upload/test.txt";
 const char *file_data = "Hello, FTP!";
 
-bool command_sent = false;
+
+void gprs_command_handle(void)
+{
+    if(!cmd_sent)
+    {
+        switch (current_state)
+        {
+            case GSM_AUTOBAUD_INIT: uart_send((uint8_t *)"A\r\n");          break;
+            case GSM_AT_INIT:       uart_send((uint8_t *)"AT+CPIN?\r\n");   break;  // SIM Card status
+            case GSM_AT_CSQ :       uart_send((uint8_t *)"AT+CSQ\r\n");     break;  // Signal quality
+            case GSM_AT_CREG:       uart_send((uint8_t *)"AT+CREG?\r\n");   break;  // Register on home network
+        }
+    }
+}
+
+void gprs_data_handle(void)
+{
+    if(modem_respond_rcvd)
+    {
+        modem_respond_rcvd = false;
+
+        switch (current_state)
+        {
+            case GSM_AUTOBAUD_INIT:  
+                if(strstr ((const char*)rx_buffer, "A"))
+                {
+                    set_gprs_state(GSM_AT_INIT);
+                }
+                break;
+            case GSM_AT_INIT:  
+
+                if((strstr ((const char*)rx_buffer, "READY")) && (strstr ((const char*)rx_buffer, "OK")))
+                {
+                    set_gprs_state(GSM_AT_CSQ);
+                }else
+                if( strstr ((const char*)rx_buffer, "ERROR")) 
+                {
+                    set_gprs_state(GSM_AUTOBAUD_INIT);
+                }
+                break;  //SIM ready
+            case GSM_AT_CSQ :
+
+                if( strstr ((const char*)rx_buffer, "OK"))
+                {
+                    set_gprs_state(GSM_AT_CREG);
+                } else
+                if( strstr ((const char*)rx_buffer, "ERROR")) 
+                {
+                    //set_gprs_state(GSM_AUTOBAUD_INIT); TO DO 
+                }
+                break;  //Signal quality
+            case GSM_AT_CREG:
+                if(( strstr ((const char*)rx_buffer, "+CREG: 0,1")) && (strstr ((const char*)rx_buffer, "OK")))
+                {
+                    set_gprs_state(GSM_AT_MODE);
+                } else
+                if( strstr ((const char*)rx_buffer, "ERROR")) 
+                {
+                    //set_gprs_state(GSM_AUTOBAUD_INIT); TO DO
+                }
+                break;  //register on home network
+        }
+    }
+}
+
 
 //unsigned char gprs_command_handle(void)
 //{
